@@ -1,42 +1,56 @@
 var fs = require("fs");
+const util = require("util");
+const uuid = require('uuid/v4');
+
+
+const readFile = util.promisify(fs.readFile);
+const writeFile = util.promisify(fs.writeFile);
+
+
 module.exports = function(app) {
 
+  app.get("/api/notes", async function(req, res) {
 
-  function readFile () {
-    fs.readFile("./db/db.json", "utf8", function(error, data) {
-      let currentNotes;
-
-      if (error) {
-        return console.log(error);
-      }
-      console.log(data);
-      currentNotes = [].concat(JSON.parse(data));
-    
-      return currentNotes;
-    
-    });
-
-  }
-  app.get("/api/notes", function(req, res) {
-
-   readfile();
-
-  
+    const notes = await readFile("./db/db.json", "utf8");
+    res.json(JSON.parse(notes));
    
   });
   
-  app.post("/api/notes", function(req, res) {
-    const newNote = req.body; 
-    newNote.id = notes.length + 1; 
-    notes.push(newNote);
-    const notes_JSON = JSON.stringify(notes);
-    fs.writeFile("./db/db.json"
-    , notes_JSON
-    , function(err){
-      if(err) throw (err);       
-      })
-    res.json(notes);
+  app.post("/api/notes",async function(req, res) {
+    let allNotes;
+    //destructuring req.body
+    const {title, text} = req.body;
+    //generate random id with uuid npm package
+    const id = uuid();
+    //build our new note object
+    const newNote = {title, text, id} 
+    //reading db.json file
+    const currentNotes = await readFile("./db/db.json", "utf8");
+    //concatonate the arry from file we read to the allNotes array
+    allNotes = [].concat(JSON.parse(currentNotes));
+    //push our new note to the all Notes array
+    allNotes.push(newNote);
+    //write our new file with the allNotes array
+    const notes  = await writeFile("./db/db.json", JSON.stringify(allNotes));
+    
+    //send all of our notes to the front end
+    res.json(allNotes);
   });
+
+  app.delete("/api/notes/:id", async function (req, res) {
+    let currentNotes;
+    const id = req.params.id;
+    console.log(id);
+
+    //reading db.json file
+    const fileNotes = await readFile("./db/db.json", "utf8");
+    //concatonate the arry from file we read to the allNotes array
+    currentNotes = [].concat(JSON.parse(fileNotes));
+
+    
+
+  
+  })
  
 };
 
